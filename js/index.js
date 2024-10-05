@@ -1,73 +1,68 @@
-let moviesData = []; // Almacenar las películas
+const url = 'https://japceibal.github.io/japflix_api/movies-data.json'; 
+let moviesData = [];
+const searchbtn = document.getElementById('btnBuscar');
 
-// Cargar los datos de las películas
-window.addEventListener('DOMContentLoaded', () => {
-  fetch('https://japceibal.github.io/japflix_api/movies-data.json')
-    .then(response => response.json())
-    .then(data => {
-      moviesData = data; // Guardar los datos de las películas
-    })
-    .catch(error => console.error('Error al cargar las películas:', error));
-});
+// cargar datos de peliculas
+function dataMovies() {
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            moviesData = data;
+        })
+        .catch(error => console.error('Error en la petición:', error));
+}
 
-// Filtrar y mostrar resultados
-document.getElementById('btnBuscar').addEventListener('click', () => {
-  const query = document.getElementById('inputBuscar').value.toLowerCase();
-  const resultList = document.getElementById('lista');
-  resultList.innerHTML = ''; // Limpiar resultados anteriores
+// mostrar estrellas segun puntuacion
+function renderStars(voteAverage) {
+    let starsHTML = '';
+    const totalStars = Math.round(voteAverage / 2);
 
-  if (query) {
-    const filteredMovies = moviesData.filter(movie =>
-      movie.title.toLowerCase().includes(query) ||
-      movie.genres.join(', ').toLowerCase().includes(query) ||
-      movie.tagline.toLowerCase().includes(query) ||
-      movie.overview.toLowerCase().includes(query)
+    for (let i = 0; i < totalStars; i++) {
+        starsHTML += '<span class="fa fa-star checked"></span>';
+    }
+    for (let i = totalStars; i < 5; i++) {
+        starsHTML += '<span class="fa fa-star"></span>';
+    }
+
+    return starsHTML;
+}
+
+//buscar y mostrar pelis
+function buscarPeliculas() {
+    const searchTerm = document.getElementById('inputBuscar').value.toLowerCase();
+    const moviesList = document.getElementById('lista');
+    moviesList.innerHTML = ''; 
+
+    if (moviesData.length === 0) {
+        moviesList.innerHTML = '<li class="list-group-item">No hay datos de películas disponibles.</li>';
+        return;
+    }
+
+    const filteredMovies = moviesData.filter(pelicula => 
+        pelicula.title.toLowerCase().includes(searchTerm) || 
+        pelicula.genres.some(genero => genero.name.toLowerCase().includes(searchTerm)) ||
+        (pelicula.tagline && pelicula.tagline.toLowerCase().includes(searchTerm)) ||
+        (pelicula.overview && pelicula.overview.toLowerCase().includes(searchTerm))
     );
 
-    // Mostrar las películas filtradas
-    filteredMovies.forEach(movie => {
-      const movieElement = document.createElement('li');
-      movieElement.classList.add('list-group-item', 'bg-dark', 'text-light');
-      movieElement.innerHTML = `
-        <h5>${movie.title}</h5>
-        <p>${movie.tagline}</p>
-        <div class="stars">${getStars(movie.vote_average)}</div>
-        <button class="btn btn-info mt-2" onclick="showMovieDetails(${movie.id})" data-bs-toggle="modal" data-bs-target="#movieModal">Ver detalles</button>
-      `;
-      resultList.appendChild(movieElement);
+    filteredMovies.forEach(pelicula => {
+        const li = document.createElement('li');
+        li.classList.add('list-group-item', 'bg-secondary', 'text-white', 'mb-2'); // Añadir clases de Bootstrap
+        li.innerHTML = `
+            <h3 class="text-white">${pelicula.title}</h3>
+            <p>${renderStars(pelicula.vote_average)}</p>
+            <p><em>${pelicula.tagline || ''}</em></p>
+        `;
+        moviesList.appendChild(li);
     });
-  }
-});
 
-// Mostrar detalles de la película seleccionada en el modal
-function showMovieDetails(movieId) {
-  const movie = moviesData.find(m => m.id === movieId);
-  if (!movie) return;
-
-  document.getElementById('movieModalLabel').innerText = movie.title;
-  document.getElementById('movieOverview').innerText = movie.overview;
-  document.getElementById('movieGenres').innerText = movie.genres.join(', ');
-  document.getElementById('movieYear').innerText = movie.release_date.split('-')[0];
-  document.getElementById('movieDuration').innerText = movie.runtime;
-  document.getElementById('movieBudget').innerText = movie.budget.toLocaleString();
-  document.getElementById('movieRevenue').innerText = movie.revenue.toLocaleString();
-
-  // Añadir funcionalidad al botón de "Más información"
-  const toggleDetailsButton = document.getElementById('toggleDetails');
-  toggleDetailsButton.addEventListener('click', () => {
-    const extraDetails = document.getElementById('extraDetails');
-    extraDetails.style.display = extraDetails.style.display === 'none' || extraDetails.style.display === '' ? 'block' : 'none';
-  });
+    if (filteredMovies.length === 0) {
+        moviesList.innerHTML = '<li class="list-group-item">No se encontraron películas que coincidan con la búsqueda.</li>';
+    }
 }
 
-// Función para generar estrellas según el rating
-function getStars(voteAverage) {
-  const starsTotal = 5;
-  const rating = Math.round(voteAverage / 2); // Escalar de 0-10 a 0-5
-  let starsHtml = '';
+// cargar informacion cuando se inicia la pag
+document.addEventListener('DOMContentLoaded', dataMovies);
 
-  for (let i = 0; i < starsTotal; i++) {
-    starsHtml += i < rating ? '<span class="fa fa-star checked"></span>' : '<span class="fa fa-star"></span>';
-  }
-  return starsHtml;
-}
+//buscar peliculas cuando hacemos click en el bootn
+searchbtn.addEventListener('click', buscarPeliculas);
